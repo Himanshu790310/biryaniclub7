@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="display-6 mb-2">
+                        <i class="fas fa-plus-circle text-success"></i> Add Promotion
+                    </h1>
+                    <p class="text-muted">Create a new discount coupon</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('admin_promotions') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-left"></i> Back to Promotions
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Form -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">New Promotion Details</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="code" class="form-label">Coupon Code *</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control text-uppercase" id="code" name="code" 
+                                           required maxlength="20" placeholder="WELCOME10">
+                                    <button type="button" class="btn btn-outline-secondary" id="generate_code_btn">
+                                        <i class="fas fa-random"></i> Generate
+                                    </button>
+                                </div>
+                                <small class="form-text text-muted">Letters and numbers only, max 20 characters. Click Generate for auto code.</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="discount_type" class="form-label">Discount Type *</label>
+                                <select class="form-select" id="discount_type" name="discount_type" required>
+                                    <option value="">Choose type...</option>
+                                    <option value="percentage">Percentage (%)</option>
+                                    <option value="fixed">Fixed Amount (₹)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" 
+                                      rows="2" placeholder="Describe your promotion..."></textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="discount_value" class="form-label">Discount Value *</label>
+                                <input type="number" class="form-control" id="discount_value" name="discount_value" 
+                                       min="0" step="0.01" required>
+                                <small class="form-text text-muted" id="discount_help">Enter percentage (e.g., 10 for 10%) or amount in rupees</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="min_order_amount" class="form-label">Minimum Order Amount (₹)</label>
+                                <input type="number" class="form-control" id="min_order_amount" name="min_order_amount" 
+                                       min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="max_discount" class="form-label">Maximum Discount (₹)</label>
+                                <input type="number" class="form-control" id="max_discount" name="max_discount" 
+                                       min="0" step="0.01">
+                                <small class="form-text text-muted">For percentage discounts only</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="usage_limit" class="form-label">Usage Limit</label>
+                                <input type="number" class="form-control" id="usage_limit" name="usage_limit" 
+                                       min="1">
+                                <small class="form-text text-muted">Leave empty for unlimited uses</small>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="expires_at" class="form-label">Expiry Date</label>
+                            <input type="date" class="form-control" id="expires_at" name="expires_at">
+                            <small class="form-text text-muted">Leave empty for no expiry</small>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('admin_promotions') }}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-plus"></i> Create Promotion
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('discount_type').addEventListener('change', function() {
+    const maxDiscountField = document.getElementById('max_discount');
+    const discountHelp = document.getElementById('discount_help');
+    
+    if (this.value === 'percentage') {
+        maxDiscountField.parentElement.style.display = 'block';
+        discountHelp.textContent = 'Enter percentage (e.g., 10 for 10% off)';
+    } else if (this.value === 'fixed') {
+        maxDiscountField.parentElement.style.display = 'none';
+        maxDiscountField.value = '';
+        discountHelp.textContent = 'Enter amount in rupees (e.g., 50 for ₹50 off)';
+    } else {
+        maxDiscountField.parentElement.style.display = 'block';
+        discountHelp.textContent = 'Enter percentage or amount in rupees';
+    }
+});
+
+document.getElementById('code').addEventListener('input', function() {
+    this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+});
+
+document.getElementById('generate_code_btn').addEventListener('click', function() {
+    // Generate random coupon code
+    const prefixes = ['SAVE', 'GET', 'DEAL', 'OFF', 'GRAB', 'WIN', 'TAKE'];
+    const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+    const number = Math.floor(Math.random() * 900) + 100; // 100-999
+    const suffix = Math.random().toString(36).substring(2, 4).toUpperCase(); // 2 random letters
+    
+    const code = prefix + number + suffix;
+    document.getElementById('code').value = code;
+});
+</script>
+{% endblock %}

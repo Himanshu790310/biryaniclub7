@@ -1,0 +1,75 @@
+{
+    "name": "Biryani Club - Authentic Biryani Delivery",
+    "short_name": "Biryani Club",
+    "description": "Authentic flavors, royal taste, delivered to your doorstep",
+    "start_url": "/",
+    "display": "standalone",
+    "theme_color": "#0d6efd",
+    "background_color": "#ffffff",
+    "orientation": "portrait-primary",
+    "categories": ["food", "restaurant", "delivery"],
+    "lang": "en",
+    "scope": "/",
+    "icons": [
+        {
+            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍛</text></svg>",
+            "sizes": "192x192",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍛</text></svg>",
+            "sizes": "512x512",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='800' viewBox='0 0 400 800'><rect width='400' height='800' fill='%23f8f9fa'/><text x='200' y='400' text-anchor='middle' font-size='24' fill='%230d6efd'>Biryani Club App</text></svg>",
+            "sizes": "400x800",
+            "type": "image/svg+xml",
+            "form_factor": "narrow"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "View Menu",
+            "short_name": "Menu",
+            "description": "Browse our delicious menu",
+            "url": "/menu",
+            "icons": [
+                {
+                    "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>",
+                    "sizes": "96x96"
+                }
+            ]
+        },
+        {
+            "name": "My Orders",
+            "short_name": "Orders",
+            "description": "Track your orders",
+            "url": "/my_orders",
+            "icons": [
+                {
+                    "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>",
+                    "sizes": "96x96"
+                }
+            ]
+        },
+        {
+            "name": "Cart",
+            "short_name": "Cart",
+            "description": "View shopping cart",
+            "url": "/cart",
+            "icons": [
+                {
+                    "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛒</text></svg>",
+                    "sizes": "96x96"
+                }
+            ]
+        }
+    ],
+    "related_applications": [],
+    "prefer_related_applications": false
+}

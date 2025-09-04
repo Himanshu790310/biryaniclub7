@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <!-- Success Header -->
+            <div class="text-center mb-4">
+                <div class="success-icon mb-3">
+                    <i class="fas fa-check-circle text-success"></i>
+                </div>
+                <h1 class="display-5 text-success mb-2">Order Confirmed!</h1>
+                <p class="lead text-muted">Thank you for your order. We're preparing your delicious meal!</p>
+            </div>
+
+            <!-- Order Details Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white text-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-receipt"></i> Order #{{ order.order_number }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Order Summary -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-user"></i> Customer Details</h6>
+                            <div class="ms-3">
+                                <div><strong>{{ order.customer_name }}</strong></div>
+                                <div class="text-muted">{{ order.customer_phone }}</div>
+                                {% if order.is_guest_order %}
+                                <span class="badge bg-secondary mt-1">Guest Order</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-clock"></i> Order Time</h6>
+                            <div class="ms-3">
+                                <div>{{ order.created_at.strftime('%d %b %Y') }}</div>
+                                <div class="text-muted">{{ order.created_at_ist.strftime('%I:%M %p IST') }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Items Ordered -->
+                    <h6><i class="fas fa-shopping-bag"></i> Items Ordered</h6>
+                    <div class="ms-3 mb-4">
+                        {% for item in order.order_items %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="d-flex align-items-center">
+                                <span class="fs-4 me-2">{{ item.menu_item.emoji or '🍽️' }}</span>
+                                <div>
+                                    <div class="fw-bold">{{ item.menu_item.name }}</div>
+                                    <small class="text-muted">₹{{ "%.0f"|format(item.unit_price) }} × {{ item.quantity }}</small>
+                                </div>
+                            </div>
+                            <span class="fw-bold">₹{{ "%.0f"|format(item.total_price) }}</span>
+                        </div>
+                        {% endfor %}
+
+                        {% if order.discount > 0 %}
+                        <div class="d-flex justify-content-between mb-2 text-success">
+                            <span>Discount{% if order.coupon_code %} ({{ order.coupon_code }}){% endif %}</span>
+                            <span>-₹{{ "%.0f"|format(order.discount) }}</span>
+                        </div>
+                        {% endif %}
+
+                        <hr>
+                        <div class="d-flex justify-content-between fw-bold fs-5">
+                            <span>Total</span>
+                            <span class="text-success">₹{{ "%.0f"|format(order.total_amount) }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Payment Method -->
+                    <h6><i class="fas fa-credit-card"></i> Payment Method</h6>
+                    <div class="ms-3 mb-4">
+                        <span class="badge bg-{% if order.payment_method == 'cash' %}warning{% else %}primary{% endif %} fs-6">
+                            {% if order.payment_method == 'cash' %}
+                                Cash on Delivery
+                            {% else %}
+                                UPI Payment {% if order.payment_status == 'confirmed' %}✓{% endif %}
+                            {% endif %}
+                        </span>
+                    </div>
+
+                    <!-- Delivery Address -->
+                    <h6><i class="fas fa-map-marker-alt"></i> Delivery Address</h6>
+                    <div class="ms-3 mb-4">
+                        <div class="text-muted">{{ order.customer_address }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Status -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-route"></i> Order Status
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <!-- Real-time Progress Bar -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold">Progress</span>
+                            <span id="progress-percentage">{{ get_order_progress_percentage(order.status) }}%</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div id="progress-bar" class="progress-bar bg-success progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" 
+                                 style="width: {{ get_order_progress_percentage(order.status) }}%"
+                                 aria-valuenow="{{ get_order_progress_percentage(order.status) }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="progress-steps">
+                        <div class="d-flex justify-content-between">
+                            <div class="step completed">
+                                <div class="step-icon">
+                                    <i class="fas fa-shopping-cart"></i>
+                                </div>
+                                <div class="step-label">Ordered</div>
+                            </div>
+                            <div class="step {% if order.status in ['confirmed', 'preparing', 'out_for_delivery', 'delivered'] %}completed{% endif %}" id="step-confirmed">
+                                <div class="step-icon">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="step-label">Confirmed</div>
+                            </div>
+                            <div class="step {% if order.status in ['preparing', 'out_for_delivery', 'delivered'] %}completed{% endif %}" id="step-preparing">
+                                <div class="step-icon">
+                                    <i class="fas fa-utensils"></i>
+                                </div>
+                                <div class="step-label">Preparing</div>
+                            </div>
+                            <div class="step {% if order.status in ['out_for_delivery', 'delivered'] %}completed{% endif %}" id="step-delivery">
+                                <div class="step-icon">
+                                    <i class="fas fa-shipping-fast"></i>
+                                </div>
+                                <div class="step-label">On the Way</div>
+                            </div>
+                            <div class="step {% if order.status == 'delivered' %}completed{% endif %}" id="step-delivered">
+                                <div class="step-icon">
+                                    <i class="fas fa-home"></i>
+                                </div>
+                                <div class="step-label">Delivered</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-3">
+                        <span id="current-status" class="badge bg-{% if order.status == 'pending' %}warning{% elif order.status == 'confirmed' %}info{% elif order.status == 'preparing' %}primary{% elif order.status == 'out_for_delivery' %}secondary{% elif order.status == 'delivered' %}success{% else %}danger{% endif %} fs-6">
+                            Current Status: {{ order.status|title|replace('_', ' ') }}
+                        </span>
+                        <div class="mt-2">
+                            <div id="last-updated" class="text-muted">
+                            Last updated: <span data-timestamp="{{ order.created_at.isoformat() }}">{{ order.created_at_ist.strftime('%I:%M %p IST') }}</span>
+                        </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estimated Delivery Time -->
+            <div class="alert alert-info text-center mb-4">
+                <h6 class="alert-heading">
+                    <i class="fas fa-clock"></i> Estimated Delivery Time
+                </h6>
+                <p class="mb-0">
+                    Your order will be delivered in <strong>30-45 minutes</strong>
+                    <br>
+                    <small class="text-muted">We'll call you when the order is on the way</small>
+                </p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="text-center mb-4">
+                <div class="d-flex flex-column flex-md-row gap-3 justify-content-center">
+                    {% if get_current_user() %}
+                    <a href="{{ url_for('my_orders') }}" class="btn btn-primary">
+                        <i class="fas fa-history"></i> View All Orders
+                    </a>
+                    {% endif %}
+                    <a href="{{ url_for('menu') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-book-open"></i> Order More
+                    </a>
+                    <a href="tel:+917903102794" class="btn btn-outline-success">
+                        <i class="fas fa-phone"></i> Call Restaurant
+                    </a>
+                </div>
+            </div>
+
+            <!-- Thank You Message -->
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-primary">
+                        <i class="fas fa-heart"></i> Thank You!
+                    </h5>
+                    <p class="card-text">
+                        We appreciate your order and look forward to serving you again. 
+                        Your delicious biryani is being prepared with love and care!
+                    </p>
+                    {% if not get_current_user() %}
+                    <div class="mt-3">
+                        <p class="small text-muted">
+                            <i class="fas fa-info-circle"></i> Want to track future orders? 
+                            <a href="{{ url_for('register') }}" class="text-decoration-none">Create an account</a> 
+                            for order history and faster checkout.
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentStatus = '{{ order.status }}';
+    const orderNumber = '{{ order.order_number }}';
+
+    // Function to format timestamp to IST
+    function formatTimestampToIST(timestampIso) {
+        const date = new Date(timestampIso);
+        const options = {
+            timeZone: 'Asia/Kolkata',
+            hour: 'numeric',
+            minute: 'numeric',
+            hour12: true
+        };
+        return date.toLocaleString('en-IN', options) + ' IST';
+    }
+
+    // Real-time order status updates
+    function updateOrderStatus() {
+        fetch(`/api/order_status/${orderNumber}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status !== currentStatus) {
+                    // Update status badge
+                    const statusBadge = document.getElementById('current-status');
+                    statusBadge.textContent = `Current Status: ${data.status_display}`;
+                    statusBadge.className = `badge fs-6 ${getStatusBadgeClass(data.status)}`;
+
+                    // Update progress bar
+                    const progressBar = document.getElementById('progress-bar');
+                    const progressPercentage = document.getElementById('progress-percentage');
+                    progressBar.style.width = `${data.progress_percentage}%`;
+                    progressBar.setAttribute('aria-valuenow', data.progress_percentage);
+                    progressPercentage.textContent = `${data.progress_percentage}%`;
+
+                    // Update progress steps
+                    updateProgressSteps(data.status);
+
+                    // Update last updated time with IST formatting
+                    const lastUpdatedSpan = document.querySelector('#last-updated span');
+                    if (lastUpdatedSpan) {
+                        lastUpdatedSpan.textContent = formatTimestampToIST(lastUpdatedSpan.getAttribute('data-timestamp'));
+                    }
+
+
+                    // Show notification
+                    showOrderUpdateNotification(data.status_display);
+
+                    currentStatus = data.status;
+                }
+            })
+            .catch(error => console.error('Error fetching order status:', error));
+    }
+
+    function getStatusBadgeClass(status) {
+        const statusClasses = {
+            'pending': 'bg-warning',
+            'confirmed': 'bg-info',
+            'preparing': 'bg-primary',
+            'out_for_delivery': 'bg-secondary',
+            'delivered': 'bg-success',
+            'cancelled': 'bg-danger'
+        };
+        return statusClasses[status] || 'bg-secondary';
+    }
+
+    function updateProgressSteps(status) {
+        // Remove completed class from all steps first
+        document.querySelectorAll('.step').forEach(step => {
+            if (!step.classList.contains('step:first-child')) {
+                step.classList.remove('completed');
+            }
+        });
+
+        // Add completed class based on status
+        const statusSteps = {
+            'confirmed': ['step-confirmed'],
+            'preparing': ['step-confirmed', 'step-preparing'],
+            'out_for_delivery': ['step-confirmed', 'step-preparing', 'step-delivery'],
+            'delivered': ['step-confirmed', 'step-preparing', 'step-delivery', 'step-delivered']
+        };
+
+        if (statusSteps[status]) {
+            statusSteps[status].forEach(stepId => {
+                const step = document.getElementById(stepId);
+                if (step) step.classList.add('completed');
+            });
+        }
+    }
+
+    function showOrderUpdateNotification(statusDisplay) {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = 'alert alert-success alert-dismissible fade show position-fixed';
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        notification.innerHTML = `
+            <strong>Order Update!</strong> Your order status has been updated to: ${statusDisplay}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+
+        document.body.appendChild(notification);
+
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 5000);
+    }
+
+    // Start real-time updates for active orders
+    {% if order.status in ['pending', 'confirmed', 'preparing', 'out_for_delivery'] %}
+    setInterval(updateOrderStatus, 10000); // Check every 10 seconds
+    {% endif %}
+
+    // Add success animation
+    document.addEventListener('DOMContentLoaded', function() {
+        const successIcon = document.querySelector('.success-icon i');
+        if (successIcon) {
+            successIcon.style.transform = 'scale(0)';
+            successIcon.style.transition = 'transform 0.5s ease-out';
+
+            setTimeout(() => {
+                successIcon.style.transform = 'scale(1)';
+            }, 100);
+        }
+
+        // Initial formatting of the timestamp on page load
+        const initialTimestampSpan = document.querySelector('#last-updated span');
+        if (initialTimestampSpan) {
+            initialTimestampSpan.textContent = formatTimestampToIST(initialTimestampSpan.getAttribute('data-timestamp'));
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="display-6 mb-2">
+                        <i class="fas fa-plus-circle text-success"></i> Add Menu Item
+                    </h1>
+                    <p class="text-muted">Add a new item to your restaurant menu</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('admin_menu') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-left"></i> Back to Menu
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Form -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">New Menu Item Details</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label for="name" class="form-label">Item Name *</label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="emoji" class="form-label">Emoji</label>
+                                <input type="text" class="form-control text-center" id="emoji" name="emoji" 
+                                       placeholder="🍛" maxlength="10">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" 
+                                      rows="3" placeholder="Describe your delicious dish..."></textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="price" class="form-label">Price (₹) *</label>
+                                <input type="number" class="form-control" id="price" name="price" 
+                                       min="0" step="0.01" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="category" class="form-label">Category *</label>
+                                <select class="form-select" id="category" name="category" required>
+                                    <option value="">Choose category...</option>
+                                    {% for category in categories %}
+                                    <option value="{{ category }}">{{ category }}</option>
+                                    {% endfor %}
+                                    <option value="new">Add New Category...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- New category input (hidden by default) -->
+                        <div class="mb-3" id="new_category_group" style="display: none;">
+                            <label for="new_category" class="form-label">New Category Name</label>
+                            <input type="text" class="form-control" id="new_category" name="new_category" 
+                                   placeholder="Enter new category name">
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="in_stock" name="in_stock" checked>
+                                <label class="form-check-label" for="in_stock">
+                                    Available for ordering
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('admin_menu') }}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-plus"></i> Add Menu Item
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('category').addEventListener('change', function() {
+    const newCategoryGroup = document.getElementById('new_category_group');
+    const newCategoryInput = document.getElementById('new_category');
+    
+    if (this.value === 'new') {
+        newCategoryGroup.style.display = 'block';
+        newCategoryInput.required = true;
+    } else {
+        newCategoryGroup.style.display = 'none';
+        newCategoryInput.required = false;
+        newCategoryInput.value = '';
+    }
+});
+</script>
+{% endblock %}

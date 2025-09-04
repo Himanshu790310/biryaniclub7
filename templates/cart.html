@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="text-center">
+                <h1 class="display-4 mb-3">
+                    <i class="fas fa-shopping-cart text-primary"></i> 
+                    {% if checkout %}Checkout{% else %}Shopping Cart{% endif %}
+                </h1>
+                {% if not checkout %}
+                    <p class="lead">Review your delicious selections</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if cart_items %}
+    <div class="row">
+        <!-- Cart Items -->
+        <div class="col-lg-8 order-2 order-lg-1">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list"></i> Order Items ({{ cart_items|length }} items)
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% for item in cart_items %}
+                    <div class="d-flex flex-column flex-md-row align-items-md-center p-3 hover-float {% if not loop.last %}border-bottom{% endif %}" style="--float-delay: {{ loop.index }}">
+                        <div class="d-flex align-items-center mb-2 mb-md-0">
+                            <div class="fs-3 me-3">{{ item.emoji }}</div>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">{{ item.name }}</h6>
+                                <p class="text-muted mb-0">₹{{ "%.2f"|format(item.price) }} each</p>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2 mt-md-0 ms-md-auto">
+                            <div class="text-center me-3">
+                                {% if not checkout %}
+                                <form action="{{ url_for('update_cart') }}" method="POST" class="d-flex align-items-center gap-2">
+                                    <input type="hidden" name="item_id" value="{{ item.id }}">
+                                    <div class="input-group" style="width: 120px;">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" 
+                                                onclick="updateQuantity(this, -1)">-</button>
+                                        <input type="number" name="quantity" value="{{ item.quantity }}" 
+                                               min="0" max="10" class="form-control form-control-sm text-center"
+                                               onchange="this.form.submit()">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" 
+                                                onclick="updateQuantity(this, 1)">+</button>
+                                    </div>
+                                </form>
+                                {% else %}
+                                <span class="badge bg-primary rounded-pill">{{ item.quantity }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="text-end" style="width: 80px;">
+                                <strong>₹{{ "%.2f"|format(item.total) }}</strong>
+                                {% if not checkout %}
+                                <br>
+                                <form action="{{ url_for('update_cart') }}" method="POST" class="d-inline">
+                                    <input type="hidden" name="item_id" value="{{ item.id }}">
+                                    <input type="hidden" name="quantity" value="0">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            {% if not checkout %}
+            <div class="d-flex flex-column flex-md-row gap-2 mb-4">
+                <a href="{{ url_for('menu') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left me-2"></i>Continue Shopping
+                </a>
+                <a href="{{ url_for('clear_cart') }}" class="btn btn-outline-danger w-100 w-md-auto" 
+                   onclick="return confirm('Are you sure you want to clear your cart?')">
+                    <i class="fas fa-trash me-2"></i>Clear Cart
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Order Summary -->
+        <div class="col-lg-4 order-1 order-lg-2 mb-4 mb-lg-0">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-receipt"></i> Order Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal</span>
+                        <span>₹{{ "%.2f"|format(subtotal) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Delivery</span>
+                        <span class="text-success">Free</span>
+                    </div>
+                    {% if discount > 0 %}
+                    <div class="d-flex justify-content-between mb-2 text-success">
+                        <span>Discount</span>
+                        <span>-₹{{ "%.2f"|format(discount) }}</span>
+                    </div>
+                    {% endif %}
+                    <hr>
+                    <div class="d-flex justify-content-between mb-3">
+                        <strong>Total</strong>
+                        <strong>₹{{ "%.2f"|format(total) }}</strong>
+                    </div>
+
+                    {% if not checkout %}
+                    {% if store_open %}
+                    <a href="{{ url_for('checkout') }}" class="btn btn-primary btn-lg w-100">
+                        <i class="fas fa-credit-card"></i> Proceed to Checkout
+                    </a>
+                    {% else %}
+                    <button class="btn btn-secondary btn-lg w-100" disabled>
+                        <i class="fas fa-store-slash"></i> Store Closed
+                    </button>
+                    <small class="text-muted mt-2 d-block text-center">Cannot checkout when store is closed</small>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Loyalty Points -->
+            {% if get_current_user() %}
+            <div class="card mt-3">
+                <div class="card-body text-center">
+                    <h6 class="card-title">
+                        <i class="fas fa-star text-warning"></i> Loyalty Points
+                    </h6>
+                    <p class="mb-1">Current Points: <strong>{{ get_current_user().loyalty_points }}</strong></p>
+                    <p class="text-muted small mb-0">Earn {{ "%.0f"|format(subtotal/10) }} points with this order!</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <!-- Empty Cart -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card text-center">
+                <div class="card-body py-5">
+                    <div class="fs-1 text-muted mb-3">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <h3>Your cart is empty</h3>
+                    <p class="text-muted mb-4">Add some delicious items to get started!</p>
+                    <a href="{{ url_for('menu') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-book-open"></i> Browse Menu
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function updateQuantity(button, change) {
+        const input = button.parentElement.querySelector('input[name="quantity"]');
+        const currentValue = parseInt(input.value);
+        const newValue = currentValue + change;
+
+        if (newValue >= 0 && newValue <= 10) {
+            input.value = newValue;
+            input.form.submit();
+        }
+    }
+</script>
+{% endblock %}

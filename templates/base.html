@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Biryani Club - Authentic Biryani Delivery{% endblock %}</title>
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#0d6efd">
+    <meta name="description" content="Authentic biryani delivery service with royal taste delivered to your doorstep">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍛</text></svg>">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{{ url_for('home') }}">
+                <i class="fas fa-utensils"></i> Biryani Club
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('home') }}">
+                            <i class="fas fa-home"></i> Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('menu') }}">
+                            <i class="fas fa-book-open"></i> Menu
+                        </a>
+                    </li>
+                    {% if get_current_user() %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('my_orders') }}">
+                            <i class="fas fa-history"></i> My Orders
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+
+                <ul class="navbar-nav">
+                    <!-- Store Status -->
+                    <li class="nav-item me-3">
+                        {% if store_open %}
+                            <span class="navbar-text text-success">
+                                <i class="fas fa-circle"></i> Open
+                            </span>
+                        {% else %}
+                            <span class="navbar-text text-danger">
+                                <i class="fas fa-circle"></i> Closed
+                            </span>
+                        {% endif %}
+                    </li>
+
+                    <!-- Cart -->
+                    <li class="nav-item">
+                        <a class="nav-link position-relative" href="{{ url_for('cart') }}">
+                            <i class="fas fa-shopping-cart"></i> Cart
+                            {% if cart_count > 0 %}
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark cart-badge">
+                                    {{ cart_count }}
+                                </span>
+                            {% endif %}
+                        </a>
+                    </li>
+
+                    <!-- User Menu -->
+                    {% if get_current_user() %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user"></i> {{ get_current_user().full_name or get_current_user().username }}
+                            </a>
+                            <ul class="dropdown-menu">
+                                {% if get_current_user().is_admin() %}
+                                <li><a class="dropdown-item" href="{{ url_for('admin') }}">
+                                    <i class="fas fa-cog"></i> Admin Panel
+                                </a></li>
+                                {% endif %}
+                                <li><a class="dropdown-item" href="{{ url_for('my_orders') }}">
+                                    <i class="fas fa-history"></i> My Orders
+                                </a></li>
+                                {% if get_current_user().role == 'customer' %}
+                                <li><a class="dropdown-item" href="{{ url_for('loyalty_dashboard') }}">
+                                    <i class="fas fa-star text-warning"></i> Loyalty Rewards
+                                </a></li>
+                                {% elif get_current_user().is_delivery_person() %}
+                                <li><a class="dropdown-item" href="{{ url_for('delivery_dashboard') }}">
+                                    <i class="fas fa-truck"></i> Delivery Panel
+                                </a></li>
+                                {% endif %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('logout') }}">
+                                    <i class="fas fa-sign-out-alt"></i> Logout
+                                </a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('login') }}">
+                                <i class="fas fa-sign-in-alt"></i> Login
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('register') }}">
+                                <i class="fas fa-user-plus"></i> Register
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="container mt-3">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{{ 'exclamation-triangle' if category == 'error' else 'info-circle' if category == 'info' else 'check-circle' }}"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
+    <main class="py-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-light py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>
+                        <i class="fas fa-utensils"></i> Biryani Club
+                    </h5>
+                    <p>Authentic flavors, royal taste, delivered to your doorstep.</p>
+                    <p class="small">
+                        <i class="fas fa-phone"></i> +91 79031 02794<br>
+                        <i class="fas fa-envelope"></i> info@biryaniclub.com
+                    </p>
+                </div>
+                <div class="col-md-6">
+                    <h6>Quick Links</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="{{ url_for('home') }}" class="text-light text-decoration-none">Home</a></li>
+                        <li><a href="{{ url_for('menu') }}" class="text-light text-decoration-none">Menu</a></li>
+                        {% if get_current_user() %}
+                        <li><a href="{{ url_for('my_orders') }}" class="text-light text-decoration-none">My Orders</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+            <hr>
+            <div class="text-center">
+                <p class="mb-0">&copy; {{ current_year }} Biryani Club. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Enhanced JavaScript -->
+    <script>
+        // Quantity controls for homepage
+        document.addEventListener('DOMContentLoaded', function() {
+            // Quantity control buttons
+            document.querySelectorAll('.qty-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const action = this.dataset.action;
+                    const input = this.closest('.input-group').querySelector('.qty-input');
+                    let value = parseInt(input.value);
+
+                    if (action === 'increase' && value < 10) {
+                        input.value = value + 1;
+                    } else if (action === 'decrease' && value > 1) {
+                        input.value = value - 1;
+                    }
+
+                    // Add visual feedback
+                    input.style.transform = 'scale(1.1)';
+                    setTimeout(() => {
+                        input.style.transform = 'scale(1)';
+                    }, 150);
+                });
+            });
+
+            // Add to cart form submission with loading state
+            document.querySelectorAll('.add-to-cart-form').forEach(form => {
+                form.addEventListener('submit', function() {
+                    const button = this.querySelector('.add-cart-btn');
+                    const originalText = button.innerHTML;
+
+                    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Adding...';
+                    button.disabled = true;
+
+                    // Re-enable after 2 seconds (in case of form redirect)
+                    setTimeout(() => {
+                        button.innerHTML = originalText;
+                        button.disabled = false;
+                    }, 2000);
+                });
+            });
+
+            // Smooth scroll for anchor links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+
+            // Add loading states to buttons
+            document.querySelectorAll('.btn:not(.qty-btn)').forEach(button => {
+                if (button.type === 'submit' || button.href) {
+                    button.addEventListener('click', function() {
+                        if (!this.disabled) {
+                            this.style.transform = 'scale(0.95)';
+                            setTimeout(() => {
+                                this.style.transform = '';
+                            }, 150);
+                        }
+                    });
+                }
+            });
+        });
+
+        {% if 'user_id' in session %}
+        // Auto-refresh cart count
+        function updateCartCount() {
+            fetch('/api/cart_count')
+                .then(response => response.json())
+                .then(data => {
+                    const cartBadge = document.querySelector('.cart-badge');
+                    if (cartBadge) {
+                        cartBadge.textContent = data.count;
+                        cartBadge.style.display = data.count > 0 ? 'flex' : 'none';
+
+                        // Animate badge update
+                        cartBadge.style.transform = 'scale(1.3)';
+                        setTimeout(() => {
+                            cartBadge.style.transform = 'scale(1)';
+                        }, 200);
+                    }
+                })
+                .catch(error => console.log('Cart count update failed'));
+        }
+
+        // Update cart count every 30 seconds
+        setInterval(updateCartCount, 30000);
+        {% endif %}
+
+        // Add page load animation
+        window.addEventListener('load', function() {
+            document.body.style.opacity = '0';
+            document.body.style.transition = 'opacity 0.3s ease-in-out';
+            setTimeout(() => {
+                document.body.style.opacity = '1';
+            }, 100);
+        });
+    </script>
+
+    <!-- PWA Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/static/sw.js')
+                .then(function(registration) {
+                    console.log('ServiceWorker registered successfully');
+                })
+                .catch(function(error) {
+                    console.log('ServiceWorker registration failed');
+                });
+        }
+    </script>
+
+    {% block scripts %}
+<script>
+    // IST timezone helper function
+    function formatToIST(dateString) {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        const istOffset = 5.5 * 60 * 60 * 1000; // 5:30 hours in milliseconds
+        const istTime = new Date(date.getTime() + istOffset);
+        return istTime.toLocaleString('en-IN', {
+            timeZone: 'Asia/Kolkata',
+            hour12: true,
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    // Update all timestamps on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('[data-timestamp]').forEach(element => {
+            const timestamp = element.getAttribute('data-timestamp');
+            element.textContent = formatToIST(timestamp);
+        });
+    });
+</script>
+{% endblock %}
+
+</body>
+</html>

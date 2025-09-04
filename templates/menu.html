@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="text-center">
+                <h1 class="display-4 mb-3">
+                    <i class="fas fa-book-open text-primary"></i> Our Menu
+                </h1>
+                <p class="lead">Discover our delicious collection of authentic biryani and more</p>
+            </div>
+        </div>
+    </div>
+
+    {% if not store_open %}
+    <!-- Store Closed Alert -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-danger text-center" role="alert">
+                <i class="fas fa-store-slash me-2"></i>
+                <strong>Store is currently CLOSED</strong> - You can browse the menu but ordering is disabled until we reopen.
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Search and Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" class="row g-3 align-items-center">
+                        <div class="col-12 col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" class="form-control" name="search" 
+                                       placeholder="Search menu items..." value="{{ search_term }}">
+                            </div>
+                        </div>
+                        <div class="col-8 col-md-4">
+                            <select name="category" class="form-select">
+                                <option value="all" {% if current_category == 'all' %}selected{% endif %}>All Categories</option>
+                                {% for cat in categories %}
+                                <option value="{{ cat }}" {% if current_category == cat %}selected{% endif %}>{{ cat }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-4 col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">Filter</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Pills -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="category-filters-container text-center">
+                <a href="{{ url_for('menu', category='all') }}" 
+                   class="category-filter {% if current_category == 'all' %}active{% endif %}">
+                    <i class="fas fa-th-large"></i> All Items
+                </a>
+                {% for cat in categories %}
+                <a href="{{ url_for('menu', category=cat) }}" 
+                   class="category-filter {% if current_category == cat %}active{% endif %}">
+                    {% if cat == 'Biryani' %}🍛
+                    {% elif cat == 'Starters' %}🥘
+                    {% elif cat == 'Sides' %}🥗
+                    {% elif cat == 'Desserts' %}🍰
+                    {% elif cat == 'Beverages' %}🥤
+                    {% else %}🍽️
+                    {% endif %}
+                    {{ cat }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Menu Items -->
+    {% if menu_items %}
+    <div class="row g-4">
+        {% for item in menu_items %}
+        <div class="col-sm-12 col-md-6 col-lg-4">
+            <div class="card h-100 menu-item-card {% if not item.in_stock %}opacity-75{% endif %}" style="--float-delay: {{ loop.index }}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="fs-1">{{ item.emoji or '🍽️' }}</div>
+                        <div class="text-end">
+                            <div class="price-tag">₹{{ "%.0f"|format(item.price) }}</div>
+                            {% if not item.in_stock %}
+                                <div class="badge bg-danger mt-2">Out of Stock</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <h5 class="card-title">{{ item.name }}</h5>
+                    <p class="card-text text-muted">{{ item.description or 'Delicious ' + item.name }}</p>
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="badge bg-secondary">{{ item.category }}</span>
+                        <span class="text-muted small">
+                            <i class="fas fa-heart text-danger"></i> {{ item.popularity }} orders
+                        </span>
+                    </div>
+                </div>
+
+                {% if item.in_stock and store_open %}
+                <div class="card-footer bg-transparent">
+                    {% if get_current_user() %}
+                    <form action="{{ url_for('add_to_cart') }}" method="POST" class="add-to-cart-form" data-item-name="{{ item.name }}">
+                        <input type="hidden" name="item_id" value="{{ item.id }}">
+                        <div class="d-flex gap-2 align-items-center mb-2">
+                            <div class="input-group quantity-controls" style="width: 120px;">
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="decrementQuantity(this)">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <input type="number" name="quantity" value="1" min="1" max="10" 
+                                       class="form-control form-control-sm text-center quantity-input">
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="incrementQuantity(this)">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                            <span class="item-total-price fw-bold text-primary">₹{{ "%.0f"|format(item.price) }}</span>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 add-cart-btn">
+                            <i class="fas fa-shopping-cart"></i> Add to Cart
+                        </button>
+                    </form>
+                    {% else %}
+                    <div class="text-center mb-2">
+                        <span class="fw-bold text-primary">₹{{ "%.0f"|format(item.price) }}</span>
+                    </div>
+                    <a href="{{ url_for('login') }}?next={{ url_for('menu') }}" class="btn btn-primary w-100">
+                        <i class="fas fa-sign-in-alt"></i> Login to Order
+                    </a>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="card-footer bg-transparent">
+                    <button class="btn btn-secondary w-100" disabled>
+                        <i class="fas fa-times"></i> {% if not item.in_stock %}Out of Stock{% else %}Store Closed{% endif %}
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card text-center">
+                <div class="card-body py-5">
+                    <div class="fs-1 text-muted mb-3">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <h3>No items found</h3>
+                    <p class="text-muted">Try adjusting your search or filter criteria</p>
+                    <a href="{{ url_for('menu') }}" class="btn btn-primary">
+                        <i class="fas fa-refresh"></i> View All Items
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Floating Cart Button -->
+{% if get_current_user() %}
+<div class="floating-cart">
+    <a href="{{ url_for('cart') }}" class="btn btn-primary btn-lg rounded-circle">
+        <i class="fas fa-shopping-cart"></i>
+        <span id="floating-cart-badge" class="cart-badge" style="display: {% if cart_count > 0 %}flex{% else %}none{% endif %};">{{ cart_count }}</span>
+    </a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function incrementQuantity(button) {
+        const input = button.parentElement.querySelector('.quantity-input');
+        const currentValue = parseInt(input.value);
+        const maxValue = parseInt(input.getAttribute('max'));
+        if (currentValue < maxValue) {
+            input.value = currentValue + 1;
+            updateItemPrice(input);
+        }
+    }
+
+    function decrementQuantity(button) {
+        const input = button.parentElement.querySelector('.quantity-input');
+        const currentValue = parseInt(input.value);
+        const minValue = parseInt(input.getAttribute('min'));
+        if (currentValue > minValue) {
+            input.value = currentValue - 1;
+            updateItemPrice(input);
+        }
+    }
+
+    function updateItemPrice(input) {
+        const card = input.closest('.card');
+        const priceText = card.querySelector('.price-tag').textContent;
+        const unitPrice = parseFloat(priceText.replace('₹', ''));
+        const quantity = parseInt(input.value);
+        const totalPrice = unitPrice * quantity;
+
+        const totalPriceElement = card.querySelector('.item-total-price');
+        totalPriceElement.textContent = `₹${totalPrice}`;
+
+        // Add animation effect
+        totalPriceElement.style.transform = 'scale(1.1)';
+        setTimeout(() => {
+            totalPriceElement.style.transform = 'scale(1)';
+        }, 200);
+    }
+
+    // Update cart badge on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add quantity change listeners
+        document.querySelectorAll('.quantity-input').forEach(input => {
+            input.addEventListener('change', () => updateItemPrice(input));
+        });
+
+        // Add form submit handlers
+        document.querySelectorAll('.add-to-cart-form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                const button = form.querySelector('.add-cart-btn');
+                const itemName = form.dataset.itemName;
+                
+                // Show success animation
+                const originalText = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-check"></i> Added!';
+                button.classList.remove('btn-primary');
+                button.classList.add('btn-success');
+                button.disabled = true;
+                
+                // Update floating cart badge after a short delay
+                setTimeout(() => {
+                    const badge = document.getElementById('floating-cart-badge');
+                    if (badge) {
+                        const currentCount = parseInt(badge.textContent) || 0;
+                        badge.textContent = currentCount + parseInt(form.quantity.value);
+                        badge.style.display = 'flex';
+                    }
+                    
+                    // Reset button after 1.5 seconds
+                    setTimeout(() => {
+                        button.innerHTML = originalText;
+                        button.classList.remove('btn-success');
+                        button.classList.add('btn-primary');
+                        button.disabled = false;
+                    }, 1500);
+                }, 100);
+            });
+        });
+    });
+</script>
+{% endblock %}

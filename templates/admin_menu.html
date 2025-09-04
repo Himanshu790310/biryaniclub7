@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="display-6 mb-2">
+                        <i class="fas fa-utensils text-primary"></i> Menu Management
+                    </h1>
+                    <p class="text-muted">Manage menu items and availability</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('add_menu_item') }}" class="btn btn-success me-2">
+                        <i class="fas fa-plus"></i> Add New Item
+                    </a>
+                    <a href="{{ url_for('admin') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="category" class="form-label">Filter by Category</label>
+                            <select name="category" id="category" class="form-select">
+                                <option value="all" {% if category_filter == 'all' %}selected{% endif %}>All Categories</option>
+                                {% for category in categories %}
+                                <option value="{{ category }}" {% if category_filter == category %}selected{% endif %}>{{ category }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="status" class="form-label">Filter by Status</label>
+                            <select name="status" id="status" class="form-select">
+                                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Items</option>
+                                <option value="available" {% if status_filter == 'available' %}selected{% endif %}>Available</option>
+                                <option value="unavailable" {% if status_filter == 'unavailable' %}selected{% endif %}>Unavailable</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-filter"></i> Filter
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Menu Items -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Menu Items ({{ menu_items|length }} items)</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if menu_items %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Category</th>
+                                    <th>Price</th>
+                                    <th>Status</th>
+                                    <th>Popularity</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in menu_items %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <span class="fs-4 me-2">{{ item.emoji }}</span>
+                                            <div>
+                                                <strong>{{ item.name }}</strong><br>
+                                                <small class="text-muted">{{ item.description[:50] }}{% if item.description|length > 50 %}...{% endif %}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ item.category }}</span>
+                                    </td>
+                                    <td>
+                                        <strong>₹{{ "%.0f"|format(item.price) }}</strong>
+                                    </td>
+                                    <td>
+                                        {% if item.in_stock %}
+                                        <span class="badge bg-success">Available</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Unavailable</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="text-center">
+                                            <small class="text-muted">{{ item.popularity }}</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('edit_menu_item', item_id=item.id) }}" 
+                                               class="btn btn-outline-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <form action="{{ url_for('toggle_menu_item_stock', item_id=item.id) }}" 
+                                                  method="POST" class="d-inline">
+                                                <button type="submit" 
+                                                        class="btn btn-outline-{% if item.in_stock %}warning{% else %}success{% endif %}"
+                                                        onclick="return confirm('Are you sure you want to {% if item.in_stock %}delist{% else %}list{% endif %} this item?')">
+                                                    <i class="fas fa-{% if item.in_stock %}eye-slash{% else %}eye{% endif %}"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center p-4">
+                        <i class="fas fa-utensils fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No menu items found matching your filters</p>
+                        <a href="{{ url_for('add_menu_item') }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Add First Item
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

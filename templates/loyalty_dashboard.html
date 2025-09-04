@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+
+{% block title %}Loyalty Rewards{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="fas fa-star text-warning"></i> Loyalty Rewards
+                <small class="text-muted">{{ user.full_name or user.username }}</small>
+            </h2>
+        </div>
+    </div>
+
+    <!-- Loyalty Tier Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card loyalty-tier-card" style="background: linear-gradient(135deg, {{ tier_info.color }}, {{ tier_info.color }}88);">
+                <div class="card-body text-white">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h3 class="mb-2">
+                                <i class="fas fa-crown"></i> {{ user.loyalty_tier.title() }} Member
+                            </h3>
+                            <h1 class="display-4 mb-0">{{ user.loyalty_points }}</h1>
+                            <p class="mb-0">Loyalty Points</p>
+                        </div>
+                        <div class="col-md-6 text-md-right">
+                            <div class="tier-benefits">
+                                <h5><i class="fas fa-gift"></i> Your Benefits</h5>
+                                <p class="mb-1">
+                                    <i class="fas fa-coins"></i> {{ tier_info.conversion_rate }} points = ₹1
+                                </p>
+                                <p class="mb-1">
+                                    <i class="fas fa-rupee-sign"></i> You can redeem: ₹{{ redeemable_amount }}
+                                </p>
+                                <p class="mb-0">
+                                    <i class="fas fa-trophy"></i> {{ user.loyalty_tier.title() }} tier perks
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress to Next Tier -->
+    {% if next_tier_points > 0 %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-chart-line"></i> Progress to Next Tier
+                    </h5>
+                    {% if user.loyalty_tier == 'bronze' %}
+                        <p>Earn {{ next_tier_points }} more points to reach <span class="badge badge-secondary">Silver</span> tier!</p>
+                        <div class="progress mb-2">
+                            <div class="progress-bar" style="width: {{ (user.loyalty_points / 1000) * 100 }}%"></div>
+                        </div>
+                        <small class="text-muted">{{ user.loyalty_points }} / 1000 points</small>
+                    {% elif user.loyalty_tier == 'silver' %}
+                        <p>Earn {{ next_tier_points }} more points to reach <span class="badge badge-warning">Gold</span> tier!</p>
+                        <div class="progress mb-2">
+                            <div class="progress-bar bg-warning" style="width: {{ ((user.loyalty_points - 1000) / 1500) * 100 }}%"></div>
+                        </div>
+                        <small class="text-muted">{{ user.loyalty_points - 1000 }} / 1500 points</small>
+                    {% elif user.loyalty_tier == 'gold' %}
+                        <p>Earn {{ next_tier_points }} more points to reach <span class="badge badge-info">Platinum</span> tier!</p>
+                        <div class="progress mb-2">
+                            <div class="progress-bar bg-info" style="width: {{ ((user.loyalty_points - 2500) / 2500) * 100 }}%"></div>
+                        </div>
+                        <small class="text-muted">{{ user.loyalty_points - 2500 }} / 2500 points</small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Redemption Section -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-exchange-alt"></i> Redeem Points</h5>
+                </div>
+                <div class="card-body">
+                    {% if redeemable_amount > 0 %}
+                        <form method="POST" action="{{ url_for('redeem_loyalty_points') }}">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="points_to_redeem">Points to Redeem</label>
+                                        <input type="number" 
+                                               class="form-control" 
+                                               id="points_to_redeem" 
+                                               name="points_to_redeem" 
+                                               min="100" 
+                                               max="{{ user.loyalty_points }}" 
+                                               step="10"
+                                               placeholder="Minimum 100 points">
+                                        <small class="form-text text-muted">
+                                            {{ tier_info.conversion_rate }} points = ₹1 (Minimum: 100 points)
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Conversion Preview</label>
+                                        <div class="conversion-preview p-3 bg-light rounded">
+                                            <span id="preview-points">0</span> points = 
+                                            <span id="preview-amount" class="text-success font-weight-bold">₹0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-coins"></i> Redeem Points
+                            </button>
+                        </form>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> 
+                            You need at least 100 points to redeem. Order more food to earn points!
+                            <br><small>You earn 1 point for every ₹10 spent.</small>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-info-circle"></i> How It Works</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="fas fa-shopping-cart text-primary"></i>
+                            <strong>Earn:</strong> 1 point per ₹10 spent
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-star text-warning"></i>
+                            <strong>Tiers:</strong> Better conversion rates as you level up
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-coins text-success"></i>
+                            <strong>Redeem:</strong> Minimum 100 points
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-trophy text-info"></i>
+                            <strong>Benefits:</strong> Exclusive member perks
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tier Information -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-medal"></i> Tier Benefits</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="tier-info {{ 'active' if user.loyalty_tier == 'bronze' else '' }}">
+                                <div class="tier-header" style="background-color: #CD7F32;">
+                                    <i class="fas fa-medal"></i> Bronze
+                                </div>
+                                <div class="tier-body">
+                                    <p><strong>0-999 points</strong></p>
+                                    <p>5 points = ₹1</p>
+                                    <small>Standard member benefits</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="tier-info {{ 'active' if user.loyalty_tier == 'silver' else '' }}">
+                                <div class="tier-header" style="background-color: #C0C0C0;">
+                                    <i class="fas fa-medal"></i> Silver
+                                </div>
+                                <div class="tier-body">
+                                    <p><strong>1000-2499 points</strong></p>
+                                    <p>4 points = ₹1</p>
+                                    <small>Better conversion rate</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="tier-info {{ 'active' if user.loyalty_tier == 'gold' else '' }}">
+                                <div class="tier-header" style="background-color: #FFD700;">
+                                    <i class="fas fa-medal"></i> Gold
+                                </div>
+                                <div class="tier-body">
+                                    <p><strong>2500-4999 points</strong></p>
+                                    <p>3 points = ₹1</p>
+                                    <small>Premium benefits</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="tier-info {{ 'active' if user.loyalty_tier == 'platinum' else '' }}">
+                                <div class="tier-header" style="background-color: #E5E4E2;">
+                                    <i class="fas fa-crown"></i> Platinum
+                                </div>
+                                <div class="tier-body">
+                                    <p><strong>5000+ points</strong></p>
+                                    <p>2 points = ₹1</p>
+                                    <small>VIP treatment</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.loyalty-tier-card {
+    border: none;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+    overflow: hidden;
+}
+
+.tier-benefits {
+    background: rgba(255,255,255,0.1);
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.tier-info {
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+}
+
+.tier-info.active {
+    border-color: #007bff;
+    box-shadow: 0 4px 8px rgba(0,123,255,0.2);
+    transform: scale(1.05);
+}
+
+.tier-header {
+    color: white;
+    padding: 1rem;
+    text-align: center;
+    font-weight: bold;
+}
+
+.tier-body {
+    padding: 1rem;
+    text-align: center;
+}
+
+.conversion-preview {
+    font-size: 1.1em;
+}
+
+.progress {
+    height: 10px;
+}
+
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: none;
+}
+
+.badge {
+    font-size: 0.9em;
+    padding: 0.5em 0.8em;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const pointsInput = document.getElementById('points_to_redeem');
+    const previewPoints = document.getElementById('preview-points');
+    const previewAmount = document.getElementById('preview-amount');
+    const conversionRate = {{ tier_info.conversion_rate }};
+    
+    if (pointsInput) {
+        pointsInput.addEventListener('input', function() {
+            const points = parseInt(this.value) || 0;
+            const amount = Math.floor(points / conversionRate);
+            
+            previewPoints.textContent = points;
+            previewAmount.textContent = '₹' + amount;
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,498 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="text-center">
+                <h1 class="display-4 mb-3">
+                    <i class="fas fa-history text-primary"></i> My Orders
+                </h1>
+                <p class="lead">Track your order history and current orders</p>
+                <div id="last-refresh" class="text-muted small">
+                    <i class="fas fa-sync-alt"></i> Last updated: <span id="last-refresh-time"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if orders %}
+    <!-- Orders List -->
+    <div class="row">
+        <div class="col-12">
+            {% for order in orders %}
+            <div class="card mb-3" data-order-id="{{ order.id }}" data-order-number="{{ order.order_number }}">
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-center gap-3 flex-wrap">
+                                <h5 class="mb-0">Order #{{ order.order_number }}</h5>
+                                <span class="badge order-status-badge bg-{% if order.status == 'pending' %}warning{% elif order.status == 'confirmed' %}info{% elif order.status == 'preparing' %}primary{% elif order.status == 'out_for_delivery' %}secondary{% elif order.status == 'delivered' %}success{% else %}danger{% endif %} fs-6">
+                                    {{ order.status|title|replace('_', ' ') }}
+                                </span>
+                                <span class="badge bg-{% if order.payment_status == 'confirmed' %}success{% elif order.payment_status == 'pending' %}warning{% else %}danger{% endif %}">
+                                    Payment {{ order.payment_status|title }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="text-muted small">
+                                <small data-timestamp="{{ order.created_at.isoformat() }}">{{ order.created_at_ist.strftime('%I:%M %p IST') }}</small>
+                                <br>
+                                <small class="text-muted">{{ order.created_at_ist.strftime('%d %b') }}</small>
+                            </div>
+                            <div class="fw-bold text-success fs-5">₹{{ "%.0f"|format(order.total_amount) }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Order Items -->
+                        <div class="col-lg-8 mb-3">
+                            <h6><i class="fas fa-shopping-bag"></i> Order Items</h6>
+                            <div class="ms-3">
+                                {% for item in order.order_items %}
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div class="d-flex align-items-center">
+                                        <span class="fs-4 me-2">{{ item.menu_item.emoji or '🍽️' }}</span>
+                                        <div>
+                                            <div class="fw-bold">{{ item.menu_item.name }}</div>
+                                            <small class="text-muted">₹{{ "%.0f"|format(item.unit_price) }} × {{ item.quantity }}</small>
+                                        </div>
+                                    </div>
+                                    <span class="fw-bold">₹{{ "%.0f"|format(item.total_price) }}</span>
+                                </div>
+                                {% endfor %}
+
+                                {% if order.discount > 0 %}
+                                <div class="d-flex justify-content-between mb-2 text-success">
+                                    <span>Discount{% if order.coupon_code %} ({{ order.coupon_code }}){% endif %}</span>
+                                    <span>-₹{{ "%.0f"|format(order.discount) }}</span>
+                                </div>
+                                {% endif %}
+
+                                <hr class="my-2">
+                                <div class="d-flex justify-content-between fw-bold">
+                                    <span>Total</span>
+                                    <span>₹{{ "%.0f"|format(order.total_amount) }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Order Status & Details -->
+                        <div class="col-lg-4">
+                            <h6><i class="fas fa-info-circle"></i> Order Details</h6>
+                            <div class="ms-3">
+                                <div class="mb-2">
+                                    <strong>Payment Method:</strong>
+                                    <br>
+                                    <span class="badge bg-{% if order.payment_method == 'cash' %}warning{% else %}primary{% endif %}">
+                                        {% if order.payment_method == 'cash' %}Cash on Delivery{% else %}UPI Payment{% endif %}
+                                    </span>
+                                </div>
+
+                                <div class="mb-2">
+                                    <strong>Delivery Address:</strong>
+                                    <br>
+                                    <small class="text-muted">{{ order.customer_address }}</small>
+                                </div>
+
+                                {% if order.delivery_time %}
+                                <div class="mb-2">
+                                    <strong>Delivered At:</strong>
+                                    <br>
+                                    <small data-timestamp="{{ order.delivery_time.isoformat() }}">{{ order.delivery_time_ist.strftime('%d %b %Y, %I:%M %p IST') if order.delivery_time_ist else 'N/A' }}</small>
+                                </div>
+                                {% elif order.confirmed_at %}
+                                <div class="mb-2">
+                                    <strong>Confirmed At:</strong>
+                                    <br>
+                                    <small data-timestamp="{{ order.confirmed_at.isoformat() }}">{{ order.confirmed_at_ist.strftime('%d %b %Y, %I:%M %p IST') if order.confirmed_at_ist else 'N/A' }}</small>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Order Progress - Mobile Friendly Vertical Layout -->
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6><i class="fas fa-route"></i> Order Progress</h6>
+
+                            <!-- Desktop Horizontal Progress -->
+                            <div class="progress-steps d-none d-md-block">
+                                <div class="d-flex justify-content-between">
+                                    <div class="step {% if order.status in ['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered'] %}completed{% endif %}">
+                                        <div class="step-icon">
+                                            <i class="fas fa-shopping-cart"></i>
+                                        </div>
+                                        <div class="step-label">Ordered</div>
+                                    </div>
+                                    <div class="step {% if order.status in ['confirmed', 'preparing', 'out_for_delivery', 'delivered'] %}completed{% endif %}">
+                                        <div class="step-icon">
+                                            <i class="fas fa-check-circle"></i>
+                                        </div>
+                                        <div class="step-label">Confirmed</div>
+                                    </div>
+                                    <div class="step {% if order.status in ['preparing', 'out_for_delivery', 'delivered'] %}completed{% endif %}">
+                                        <div class="step-icon">
+                                            <i class="fas fa-utensils"></i>
+                                        </div>
+                                        <div class="step-label">Preparing</div>
+                                    </div>
+                                    <div class="step {% if order.status in ['out_for_delivery', 'delivered'] %}completed{% endif %}">
+                                        <div class="step-icon">
+                                            <i class="fas fa-shipping-fast"></i>
+                                        </div>
+                                        <div class="step-label">On the Way</div>
+                                    </div>
+                                    <div class="step {% if order.status == 'delivered' %}completed{% endif %}">
+                                        <div class="step-icon">
+                                            <i class="fas fa-home"></i>
+                                        </div>
+                                        <div class="step-label">Delivered</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Mobile Vertical Progress -->
+                            <div class="progress-steps-vertical d-block d-md-none">
+                                <div class="step-vertical {% if order.status in ['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered'] %}completed{% endif %}">
+                                    <div class="step-icon-vertical">
+                                        <i class="fas fa-shopping-cart"></i>
+                                    </div>
+                                    <div class="step-content-vertical">
+                                        <div class="step-title">Order Placed</div>
+                                        <div class="step-time" data-timestamp="{{ order.created_at.isoformat() }}">{{ order.created_at_ist.strftime('%I:%M %p IST') }}</div>
+                                    </div>
+                                </div>
+
+                                <div class="step-vertical {% if order.status in ['confirmed', 'preparing', 'out_for_delivery', 'delivered'] %}completed{% endif %}">
+                                    <div class="step-icon-vertical">
+                                        <i class="fas fa-check-circle"></i>
+                                    </div>
+                                    <div class="step-content-vertical">
+                                        <div class="step-title">Order Confirmed</div>
+                                        <div class="step-time">
+                                            {% if order.confirmed_at %}
+                                                <span data-timestamp="{{ order.confirmed_at.isoformat() }}">{{ order.confirmed_at_ist.strftime('%I:%M %p IST') if order.confirmed_at_ist else 'N/A' }}</span>
+                                            {% else %}
+                                                Pending
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="step-vertical {% if order.status in ['preparing', 'out_for_delivery', 'delivered'] %}completed{% endif %}">
+                                    <div class="step-icon-vertical">
+                                        <i class="fas fa-utensils"></i>
+                                    </div>
+                                    <div class="step-content-vertical">
+                                        <div class="step-title">Preparing Food</div>
+                                        <div class="step-time">
+                                            {% if order.status in ['preparing', 'out_for_delivery', 'delivered'] %}
+                                                In Progress
+                                            {% else %}
+                                                Pending
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="step-vertical {% if order.status in ['out_for_delivery', 'delivered'] %}completed{% endif %}">
+                                    <div class="step-icon-vertical">
+                                        <i class="fas fa-shipping-fast"></i>
+                                    </div>
+                                    <div class="step-content-vertical">
+                                        <div class="step-title">Out for Delivery</div>
+                                        <div class="step-time">
+                                            {% if order.status in ['out_for_delivery', 'delivered'] %}
+                                                On the way
+                                            {% else %}
+                                                Pending
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="step-vertical {% if order.status == 'delivered' %}completed{% endif %}">
+                                    <div class="step-icon-vertical">
+                                        <i class="fas fa-home"></i>
+                                    </div>
+                                    <div class="step-content-vertical">
+                                        <div class="step-title">Delivered</div>
+                                        <div class="step-time">
+                                            {% if order.delivery_time %}
+                                                <span data-timestamp="{{ order.delivery_time.isoformat() }}">{{ order.delivery_time_ist.strftime('%I:%M %p IST') if order.delivery_time_ist else 'N/A' }}</span>
+                                            {% else %}
+                                                Pending
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    {% if order.status in ['pending', 'confirmed', 'preparing', 'out_for_delivery'] %}
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="d-flex gap-2 flex-wrap">
+                                {% if order.payment_method == 'upi' and order.payment_status == 'pending' %}
+                                <a href="{{ url_for('upi_payment', order_id=order.id) }}" class="btn btn-primary">
+                                    <i class="fas fa-qrcode"></i> Complete Payment
+                                </a>
+                                {% endif %}
+                                <a href="tel:+917903102794" class="btn btn-outline-primary">
+                                    <i class="fas fa-phone"></i> Call Restaurant
+                                </a>
+                                <button class="btn btn-outline-info btn-sm" onclick="refreshOrder({{ order.id }})">
+                                    <i class="fas fa-sync-alt"></i> Refresh Status
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <!-- No Orders -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <div class="fs-1 text-muted mb-4">
+                        <i class="fas fa-receipt"></i>
+                    </div>
+                    <h3>No orders yet</h3>
+                    <p class="text-muted mb-4">You haven't placed any orders yet. Start exploring our delicious menu!</p>
+                    <a href="{{ url_for('menu') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-book-open"></i> Browse Menu
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let updateInterval;
+
+    // Format timestamp to IST
+    function formatToIST(timestamp) {
+        try {
+            const date = new Date(timestamp);
+            if (isNaN(date.getTime())) {
+                return 'N/A';
+            }
+
+            // Convert to IST (UTC+5:30)
+            const options = {
+                timeZone: 'Asia/Kolkata',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            };
+
+            return date.toLocaleTimeString('en-IN', options) + ' IST';
+        } catch (error) {
+            console.error('Error formatting time:', error);
+            return 'N/A';
+        }
+    }
+
+    // Format current time to IST
+    function getCurrentISTTime() {
+        const now = new Date();
+        const options = {
+            timeZone: 'Asia/Kolkata',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        };
+        return now.toLocaleTimeString('en-IN', options) + ' IST';
+    }
+
+    // Real-time order status updates
+    function updateOrderStatuses() {
+        const activeOrders = document.querySelectorAll('[data-order-number]');
+
+        activeOrders.forEach(async (orderCard) => {
+            const orderNumber = orderCard.getAttribute('data-order-number');
+            const statusBadge = orderCard.querySelector('.order-status-badge');
+
+            try {
+                const response = await fetch(`/api/order_status/${orderNumber}`);
+                const data = await response.json();
+
+                // Update status badge
+                if (statusBadge.textContent.trim() !== data.status_display) {
+                    statusBadge.textContent = data.status_display;
+                    statusBadge.className = `badge order-status-badge fs-6 ${getStatusBadgeClass(data.status)}`;
+
+                    // Show notification
+                    showOrderUpdateNotification(orderNumber, data.status_display);
+
+                    // Update progress steps
+                    updateProgressSteps(orderCard, data.status);
+                }
+
+            } catch (error) {
+                console.error('Error updating order status:', error);
+            }
+        });
+
+        // Update last refresh time
+        const lastRefreshElement = document.querySelector('#last-refresh-time');
+        if (lastRefreshElement) {
+            lastRefreshElement.textContent = getCurrentISTTime();
+        }
+    }
+
+    function getStatusBadgeClass(status) {
+        const statusClasses = {
+            'pending': 'bg-warning',
+            'confirmed': 'bg-info',
+            'preparing': 'bg-primary',
+            'out_for_delivery': 'bg-secondary',
+            'delivered': 'bg-success',
+            'cancelled': 'bg-danger'
+        };
+        return statusClasses[status] || 'bg-secondary';
+    }
+
+    function updateProgressSteps(orderCard, status) {
+        const desktopSteps = orderCard.querySelectorAll('.progress-steps .step');
+        const mobileSteps = orderCard.querySelectorAll('.progress-steps-vertical .step-vertical');
+
+        // Reset all steps
+        [...desktopSteps, ...mobileSteps].forEach(step => step.classList.remove('completed'));
+
+        // Add completed class based on status
+        const statusIndex = {
+            'pending': 0,
+            'confirmed': 1,
+            'preparing': 2,
+            'out_for_delivery': 3,
+            'delivered': 4
+        };
+
+        const currentIndex = statusIndex[status] || 0;
+
+        for (let i = 0; i <= currentIndex; i++) {
+            if (desktopSteps[i]) desktopSteps[i].classList.add('completed');
+            if (mobileSteps[i]) mobileSteps[i].classList.add('completed');
+        }
+    }
+
+    function showOrderUpdateNotification(orderNumber, statusDisplay) {
+        // Create notification
+        const notification = document.createElement('div');
+        notification.className = 'alert alert-success alert-dismissible fade show position-fixed';
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px; max-width: 90vw;';
+        notification.innerHTML = `
+            <strong>Order Update!</strong><br>
+            Order #${orderNumber} status: ${statusDisplay}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+
+        document.body.appendChild(notification);
+
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 5000);
+
+        // Play notification sound (if supported)
+        try {
+            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiiK0/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiiK0/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiiK0/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiiK0/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiiK0/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiiK0/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiiK0/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiiK0/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiiK0/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiiK0/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiiK0/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiiK0/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiiK0/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiiK0/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiiK0/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiiK0/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiiK0/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiiK0/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiiK0/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiiK0/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiiK0/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiiK0/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiiK0/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiiK0/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBiiK0/LNeSs=');
+            audio.play().catch(() => {}); // Ignore if audio fails
+        } catch (e) {}
+    }
+
+    function refreshOrder(orderId) {
+        const orderCard = document.querySelector(`[data-order-id="${orderId}"]`);
+        if (orderCard) {
+            const spinner = document.createElement('i');
+            spinner.className = 'fas fa-spinner fa-spin';
+            const refreshBtn = orderCard.querySelector('[onclick*="refreshOrder"]');
+            const originalContent = refreshBtn.innerHTML;
+            refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+            refreshBtn.disabled = true;
+
+            updateOrderStatuses();
+
+            setTimeout(() => {
+                refreshBtn.innerHTML = originalContent;
+                refreshBtn.disabled = false;
+            }, 1000);
+        }
+    }
+
+    // Update all timestamps on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize last refresh time
+        const lastRefreshElement = document.querySelector('#last-refresh-time');
+        if (lastRefreshElement) {
+            lastRefreshElement.textContent = getCurrentISTTime();
+        }
+
+        // Format all timestamps
+        document.querySelectorAll('[data-timestamp]').forEach(element => {
+            const timestamp = element.getAttribute('data-timestamp');
+            if (timestamp && timestamp !== 'None') {
+                element.textContent = formatToIST(timestamp);
+            }
+        });
+    });
+
+
+    // Check if there are active orders and start real-time updates
+    const hasActiveOrders = {{ 'true' if orders and orders|selectattr('status', 'in', ['pending', 'confirmed', 'preparing', 'out_for_delivery'])|list else 'false' }};
+
+    if (hasActiveOrders) {
+        // Update immediately on page load
+        setTimeout(updateOrderStatuses, 1000);
+
+        // Then update every 15 seconds
+        updateInterval = setInterval(updateOrderStatuses, 15000);
+
+        // Update page title with active orders count
+        const activeOrdersCount = {{ orders|selectattr('status', 'in', ['pending', 'confirmed', 'preparing', 'out_for_delivery'])|list|length if orders else 0 }};
+        if (activeOrdersCount > 0) {
+            document.title = `(${activeOrdersCount}) Active Orders - My Orders`;
+        }
+    }
+
+    // Clean up interval when page is hidden/closed
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            if (updateInterval) clearInterval(updateInterval);
+        } else if (hasActiveOrders) {
+            updateInterval = setInterval(updateOrderStatuses, 15000);
+        }
+    });
+
+    // Refresh page if user comes back after being away for more than 5 minutes
+    let lastActiveTime = Date.now();
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            if (Date.now() - lastActiveTime > 300000) { // 5 minutes
+                location.reload();
+            }
+        } else {
+            lastActiveTime = Date.now();
+        }
+    });
+</script>
+{% endblock %}

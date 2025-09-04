@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}Delivery Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2>
+                <i class="fas fa-truck"></i> Delivery Dashboard
+                <small class="text-muted">{{ get_current_user().full_name }}</small>
+            </h2>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-box"></i> Total Assigned
+                    </h5>
+                    <h3>{{ total_assigned }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-check-circle"></i> Delivered Today
+                    </h5>
+                    <h3>{{ delivered_today }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Available Orders -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-list"></i> Available Orders for Pickup</h5>
+                </div>
+                <div class="card-body">
+                    {% if available_orders %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Order #</th>
+                                        <th>Customer</th>
+                                        <th>Address</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th>Time</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for order in available_orders %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ order.order_number }}</strong>
+                                        </td>
+                                        <td>
+                                            {{ order.customer_display_name }}<br>
+                                            <small class="text-muted">{{ order.customer_phone }}</small>
+                                        </td>
+                                        <td>
+                                            <small>{{ order.customer_address }}</small>
+                                        </td>
+                                        <td>
+                                            <strong>₹{{ "%.0f"|format(order.total_amount) }}</strong>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-warning">{{ order.status.title() }}</span>
+                                        </td>
+                                        <td>
+                                            <small>{{ order.created_at_ist.strftime('%I:%M %p') }}</small>
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('assign_order', order_id=order.id) }}" 
+                                               class="btn btn-sm btn-primary">
+                                                <i class="fas fa-hand-paper"></i> Take Order
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> No orders available for pickup at the moment.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- My Assigned Orders -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-user-check"></i> My Assigned Orders</h5>
+                </div>
+                <div class="card-body">
+                    {% if assigned_orders %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Order #</th>
+                                        <th>Customer</th>
+                                        <th>Address</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th>Time</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for order in assigned_orders %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ order.order_number }}</strong>
+                                        </td>
+                                        <td>
+                                            {{ order.customer_display_name }}<br>
+                                            <small class="text-muted">{{ order.customer_phone }}</small>
+                                        </td>
+                                        <td>
+                                            <small>{{ order.customer_address }}</small>
+                                        </td>
+                                        <td>
+                                            <strong>₹{{ "%.0f"|format(order.total_amount) }}</strong>
+                                        </td>
+                                        <td>
+                                            {% if order.status == 'preparing' %}
+                                                <span class="badge badge-warning">Preparing</span>
+                                            {% elif order.status == 'out_for_delivery' %}
+                                                <span class="badge badge-info">Out for Delivery</span>
+                                            {% elif order.status == 'delivered' %}
+                                                <span class="badge badge-success">Delivered</span>
+                                            {% else %}
+                                                <span class="badge badge-secondary">{{ order.status.title() }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <small>{{ order.created_at_ist.strftime('%I:%M %p') }}</small>
+                                            {% if order.delivery_time_ist %}
+                                                <br><small class="text-success">Delivered: {{ order.delivery_time_ist.strftime('%I:%M %p') }}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if order.status == 'preparing' %}
+                                                <a href="{{ url_for('pickup_order', order_id=order.id) }}" 
+                                                   class="btn btn-sm btn-warning">
+                                                    <i class="fas fa-box"></i> Pickup
+                                                </a>
+                                            {% elif order.status == 'out_for_delivery' %}
+                                                <a href="{{ url_for('complete_delivery', order_id=order.id) }}" 
+                                                   class="btn btn-sm btn-success">
+                                                    <i class="fas fa-check"></i> Mark Delivered
+                                                </a>
+                                            {% elif order.status == 'delivered' %}
+                                                <span class="badge badge-success">
+                                                    <i class="fas fa-check-circle"></i> Completed
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> No orders assigned to you yet.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.badge {
+    font-size: 0.9em;
+    padding: 0.5em 0.8em;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: none;
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.btn-sm {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+}
+</style>
+{% endblock %}

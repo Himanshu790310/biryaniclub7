@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="display-6 mb-2">
+                        <i class="fas fa-user-edit text-primary"></i> Edit User
+                    </h1>
+                    <p class="text-muted">Update user information and permissions</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('admin_users') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-left"></i> Back to Users
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Form -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Edit User: @{{ user_to_edit.username }}</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="full_name" class="form-label">Full Name</label>
+                                <input type="text" class="form-control" id="full_name" name="full_name" 
+                                       value="{{ user_to_edit.full_name or '' }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" name="email" 
+                                       value="{{ user_to_edit.email }}" required>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="phone" class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" id="phone" name="phone" 
+                                       value="{{ user_to_edit.phone or '' }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="role" class="form-label">Role</label>
+                                {% if user_to_edit.id == get_current_user().id %}
+                                <input type="text" class="form-control" value="{{ user_to_edit.role.title() }}" disabled>
+                                <input type="hidden" name="role" value="{{ user_to_edit.role }}">
+                                <small class="form-text text-muted">You cannot change your own role</small>
+                                {% else %}
+                                <select class="form-select" id="role" name="role">
+                                    <option value="customer" {% if user_to_edit.role == 'customer' %}selected{% endif %}>Customer</option>
+                                    <option value="delivery" {% if user_to_edit.role == 'delivery' %}selected{% endif %}>Delivery Person</option>
+                                    <option value="admin" {% if user_to_edit.role == 'admin' %}selected{% endif %}>Admin</option>
+                                </select>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- User Info -->
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <div class="bg-light rounded p-3">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <small class="text-muted">Username:</small><br>
+                                            <strong>{{ user_to_edit.username }}</strong>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <small class="text-muted">Status:</small><br>
+                                            <span class="badge bg-{% if user_to_edit.is_active %}success{% else %}danger{% endif %}">
+                                                {{ 'Active' if user_to_edit.is_active else 'Inactive' }}
+                                            </span>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <small class="text-muted">Joined:</small><br>
+                                            <strong>{{ user_to_edit.created_at.strftime('%d %b %Y') }}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('admin_users') }}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,585 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="text-center">
+                <h1 class="display-4 mb-3">
+                    <i class="fas fa-credit-card text-primary"></i> Checkout
+                </h1>
+                <p class="lead">Complete your order details</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Guest Checkout Notice -->
+    {% if not get_current_user() %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info" role="alert">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Guest Checkout:</strong> You're ordering as a guest. Your order details will be saved for this session only.
+                <a href="{{ url_for('login') }}" class="alert-link">Login</a> or 
+                <a href="{{ url_for('register') }}" class="alert-link">Register</a> to save your order history.
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <!-- Order Details -->
+        <div class="col-lg-8 order-2 order-lg-1">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list"></i> Order Details
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('process_checkout') }}" method="POST" id="checkout-form">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="customer_name" class="form-label">Full Name *</label>
+                                <input type="text" class="form-control" id="customer_name" name="customer_name" required
+                                       value="{{ get_current_user().full_name if get_current_user() and get_current_user().full_name else '' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="customer_phone" class="form-label">Phone Number *</label>
+                                <input type="tel" class="form-control" id="customer_phone" name="customer_phone" required
+                                       value="{{ get_current_user().phone if get_current_user() and get_current_user().phone else '' }}">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="customer_address" class="form-label">Delivery Address *</label>
+                            <textarea class="form-control" id="customer_address" name="customer_address" rows="3" required
+                                      placeholder="Enter your complete address for delivery"></textarea>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">
+                                <i class="fas fa-credit-card text-primary"></i> Payment Method *
+                            </label>
+                            <div class="row g-3 payment-methods-row">
+                                <div class="col-sm-12 col-md-6">
+                                    <div class="card payment-method-card h-100">
+                                        <div class="card-body text-center d-flex flex-column justify-content-center">
+                                            <input class="form-check-input payment-radio position-absolute" type="radio" name="payment_method" id="paymentCOD" value="cash" checked style="top: 15px; right: 15px;">
+                                            <label class="form-check-label w-100" for="paymentCOD">
+                                                <div class="fs-1 text-success mb-2">
+                                                    <i class="fas fa-money-bill-wave"></i>
+                                                </div>
+                                                <h6 class="fw-bold">Cash on Delivery</h6>
+                                                <p class="text-muted small mb-2">Pay when your order arrives</p>
+                                                <div class="d-flex justify-content-center gap-2">
+                                                    <span class="badge bg-success">Safe</span>
+                                                    <span class="badge bg-info">No Prepayment</span>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-12 col-md-6">
+                                    <div class="card payment-method-card h-100">
+                                        <div class="card-body text-center d-flex flex-column justify-content-center">
+                                            <input class="form-check-input payment-radio position-absolute" type="radio" name="payment_method" id="paymentUPI" value="upi" style="top: 15px; right: 15px;">
+                                            <label class="form-check-label w-100" for="paymentUPI">
+                                                <div class="fs-1 text-primary mb-2">
+                                                    <i class="fas fa-qrcode"></i>
+                                                </div>
+                                                <h6 class="fw-bold">UPI Payment</h6>
+                                                <p class="text-muted small mb-2">Instant payment via QR code</p>
+                                                <div class="d-flex justify-content-center gap-1">
+                                                    <i class="fab fa-google-pay text-primary"></i>
+                                                    <i class="fab fa-amazon-pay text-warning"></i>
+                                                    <i class="fas fa-mobile-alt text-success"></i>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- UPI Info -->
+                        <div id="upi-info" class="mb-4" style="display: none;">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title text-center">
+                                        <i class="fas fa-info-circle text-primary"></i> UPI Payment Process
+                                    </h6>
+                                    <ol class="mb-0">
+                                        <li>Click "Place Order" to generate QR code</li>
+                                        <li>Scan the QR code with any UPI app</li>
+                                        <li>Complete the payment</li>
+                                        <li>Click "Confirm Payment" to finalize your order</li>
+                                    </ol>
+                                    <div class="text-center mt-3">
+                                        <span class="badge bg-primary">UPI ID: 7903102794@ptsbi</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="coupon_code" class="form-label">
+                                <i class="fas fa-tags text-success"></i> Coupon Code (Optional)
+                            </label>
+                            <div class="input-group mb-3">
+                                <input type="text" class="form-control" id="coupon_code" name="coupon_code" placeholder="Enter coupon code">
+                                <button class="btn btn-outline-success" type="button" id="apply_coupon_btn">
+                                    <i class="fas fa-check"></i> Apply
+                                </button>
+                            </div>
+                            <div id="coupon_message" class="mb-3"></div>
+
+                            <!-- Available Coupons -->
+                            {% if available_promotions %}
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        <i class="fas fa-gift text-primary"></i> Available Offers
+                                    </h6>
+                                    <div class="row g-2">
+                                        {% for promo in available_promotions %}
+                                        <div class="col-sm-6 col-lg-4">
+                                            <div class="coupon-item p-2 border rounded text-center" data-code="{{ promo.code }}">
+                                                <div class="fw-bold text-success">{{ promo.code }}</div>
+                                                <small class="text-muted">
+                                                    {% if promo.discount_type == 'percentage' %}
+                                                        {{ promo.discount_value|int }}% Off
+                                                        {% if promo.max_discount %}
+                                                            (Max ₹{{ promo.max_discount|int }})
+                                                        {% endif %}
+                                                    {% else %}
+                                                        ₹{{ promo.discount_value|int }} Off
+                                                    {% endif %}
+                                                </small>
+                                                {% if promo.min_order_amount > 0 %}
+                                                <div><small class="text-info">Min: ₹{{ promo.min_order_amount|int }}</small></div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    <div class="text-center mt-2">
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle"></i> Click on any coupon to apply
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> No active promotions available at the moment.
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-gradient-warm btn-lg checkout-submit-btn" id="checkout_submit">
+                                <i class="fas fa-shopping-bag me-2"></i>
+                                <span class="btn-text">Complete Order</span>
+                                <div class="btn-loading" style="display: none;">
+                                    <i class="fas fa-spinner fa-spin me-2"></i>Processing...
+                                </div>
+                            </button>
+                            <div class="text-center mt-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-lock text-success"></i> Your order is secure & encrypted
+                                </small>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="text-center">
+                <a href="{{ url_for('cart') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Cart
+                </a>
+            </div>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="col-lg-4 order-1 order-lg-2">
+            <div class="card order-summary-card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-receipt text-primary"></i> Order Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for item in cart_items %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="d-flex align-items-center">
+                            <span class="me-2">{{ item.emoji }}</span>
+                            <div>
+                                <div class="fw-bold">{{ item.name }}</div>
+                                <small class="text-muted">{{ item.quantity }} × ₹{{ "%.0f"|format(item.price) }}</small>
+                            </div>
+                        </div>
+                        <span class="fw-bold">₹{{ "%.0f"|format(item.total) }}</span>
+                    </div>
+                    {% endfor %}
+
+                    <hr>
+
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal</span>
+                        <span>₹{{ "%.2f"|format(subtotal) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>
+                            <i class="fas fa-truck"></i> Delivery
+                            {% if delivery_charges == 0 %}
+                            <small class="text-success">(Free!)</small>
+                            {% endif %}
+                        </span>
+                        <span>
+                            {% if delivery_charges == 0 %}
+                            <span class="text-success">FREE</span>
+                            {% else %}
+                            ₹{{ "%.0f"|format(delivery_charges) }}
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% if discount > 0 %}
+                    <div class="d-flex justify-content-between mb-2 text-success">
+                        <span>
+                            <i class="fas fa-tags"></i> Discount
+                            {% if coupon_code %}
+                            <small class="text-muted">({{ coupon_code }})</small>
+                            {% endif %}
+                        </span>
+                        <span>-₹{{ "%.0f"|format(discount) }}</span>
+                    </div>
+                    {% endif %}
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <strong>Total</strong>
+                        <strong class="text-primary">₹{{ "%.2f"|format(total) }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Benefits -->
+            <div class="card mt-3">
+                <div class="card-body text-center">
+                    <h6 class="card-title">
+                        <i class="fas fa-shield-alt text-success"></i> Order Protection
+                    </h6>
+                    <ul class="list-unstyled small text-muted mb-0">
+                        <li><i class="fas fa-check text-success"></i> 100% Fresh & Hot</li>
+                        <li><i class="fas fa-check text-success"></i> On-time Delivery</li>
+                        <li><i class="fas fa-check text-success"></i> Quality Guaranteed</li>
+                        <li><i class="fas fa-check text-success"></i> Secure Payment</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const upiRadio = document.getElementById('paymentUPI');
+        const codRadio = document.getElementById('paymentCOD');
+        const upiInfo = document.getElementById('upi-info');
+        const paymentCards = document.querySelectorAll('.payment-method-card');
+        const applyCouponBtn = document.getElementById('apply_coupon_btn');
+        const couponInput = document.getElementById('coupon_code');
+        const couponMessage = document.getElementById('coupon_message');
+        const submitBtn = document.getElementById('checkout_submit');
+
+        // Function to update clock
+        function updateClock() {
+            const clockElement = document.querySelector('[data-timestamp]');
+            if (clockElement) {
+                const timestamp = clockElement.dataset.timestamp;
+                const now = moment(timestamp).add(5.5, 'hours'); // Add IST offset
+                clockElement.textContent = now.format('YYYY-MM-DD HH:mm:ss');
+            }
+        }
+
+        function updatePaymentMethod() {
+            // Update UPI info visibility
+            if (upiRadio.checked) {
+                upiInfo.style.display = 'block';
+            } else {
+                upiInfo.style.display = 'none';
+            }
+
+            // Update card styles
+            paymentCards.forEach(card => {
+                const radio = card.querySelector('.payment-radio');
+                if (radio.checked) {
+                    card.classList.add('border-primary', 'bg-light');
+                } else {
+                    card.classList.remove('border-primary', 'bg-light');
+                }
+            });
+        }
+
+        // Coupon functionality
+        function applyCoupon() {
+            const code = couponInput.value.trim().toUpperCase();
+            if (!code) {
+                showCouponMessage('Please enter a coupon code', 'warning');
+                return;
+            }
+
+            applyCouponBtn.disabled = true;
+            applyCouponBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Applying...';
+
+            // Simulate coupon validation (you can replace with actual API call)
+            setTimeout(() => {
+                const coupons = {
+                    'WELCOME10': { type: 'percentage', value: 10, message: 'Welcome! 10% discount applied' },
+                    'SAVE20': { type: 'percentage', value: 20, message: 'Great! 20% discount applied' },
+                    'FIRST50': { type: 'fixed', value: 50, message: '₹50 discount applied successfully' },
+                    'BIRYANI25': { type: 'fixed', value: 25, message: '₹25 discount applied on your order' }
+                };
+
+                if (coupons[code]) {
+                    showCouponMessage(coupons[code].message, 'success');
+                    couponInput.value = code;
+                    applyCouponBtn.innerHTML = '<i class="fas fa-check text-success"></i> Applied';
+                } else {
+                    showCouponMessage('Invalid coupon code. Please try again.', 'danger');
+                    applyCouponBtn.disabled = false;
+                    applyCouponBtn.innerHTML = '<i class="fas fa-check"></i> Apply';
+                }
+            }, 1000);
+        }
+
+        function showCouponMessage(message, type) {
+            couponMessage.innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : 'times-circle'}"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                couponMessage.innerHTML = '';
+            }, 5000);
+        }
+
+        // Coupon item click handlers
+        document.querySelectorAll('.coupon-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const code = this.dataset.code;
+                couponInput.value = code;
+                applyCoupon();
+
+                // Add click animation
+                this.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    this.style.transform = 'scale(1)';
+                }, 150);
+            });
+
+            // Add hover effects
+            item.style.cursor = 'pointer';
+            item.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-2px)';
+                this.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+            });
+
+            item.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+                this.style.boxShadow = '';
+            });
+        });
+
+        // Event listeners
+        if (upiRadio && codRadio) {
+            upiRadio.addEventListener('change', updatePaymentMethod);
+            codRadio.addEventListener('change', updatePaymentMethod);
+            updatePaymentMethod();
+        }
+
+        if (applyCouponBtn) {
+            applyCouponBtn.addEventListener('click', applyCoupon);
+        }
+
+        if (couponInput) {
+            couponInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    applyCoupon();
+                }
+            });
+        }
+
+        // Enhanced form validation and submission
+        document.getElementById('checkout-form').addEventListener('submit', function(e) {
+            const name = document.getElementById('customer_name').value.trim();
+            const phone = document.getElementById('customer_phone').value.trim();
+            const address = document.getElementById('customer_address').value.trim();
+
+            if (!name || !phone || !address) {
+                e.preventDefault();
+                alert('Please fill in all required fields');
+                return false;
+            }
+
+            // Phone validation
+            const cleanPhone = phone.replace(/[^0-9]/g, '');
+            if (cleanPhone.length < 10 || cleanPhone.length > 15) {
+                e.preventDefault();
+                alert('Please enter a valid phone number (10-15 digits)');
+                return false;
+            }
+
+            // Show loading state
+            const btnText = submitBtn.querySelector('.btn-text');
+            const btnLoading = submitBtn.querySelector('.btn-loading');
+
+            btnText.style.display = 'none';
+            btnLoading.style.display = 'inline-block';
+            submitBtn.disabled = true;
+
+            // Add processing animation
+            submitBtn.classList.add('btn-loading');
+        });
+
+        // Phone number formatting
+        document.getElementById('customer_phone').addEventListener('input', function() {
+            let phone = this.value.replace(/[^0-9]/g, '');
+            // Limit to 15 digits
+            if (phone.length > 15) {
+                phone = phone.substring(0, 15);
+            }
+            this.value = phone;
+        });
+
+        // Auto-resize textarea
+        const addressTextarea = document.getElementById('customer_address');
+        if (addressTextarea) {
+            addressTextarea.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = this.scrollHeight + 'px';
+            });
+        }
+
+        // Mobile-friendly improvements
+        if (window.innerWidth <= 768) {
+            // Make form elements larger on mobile
+            document.querySelectorAll('.form-control, .btn').forEach(el => {
+                el.style.fontSize = '16px'; // Prevents zoom on iOS
+            });
+
+            // Adjust payment method cards for mobile
+            document.querySelectorAll('.payment-method-card').forEach(card => {
+                card.style.marginBottom = '1rem';
+            });
+        }
+
+        // Coupon code functionality
+        const applyCouponBtn = document.getElementById('apply_coupon_btn');
+        const couponInput = document.getElementById('coupon_code');
+        const couponMessage = document.getElementById('coupon_message');
+        let appliedDiscount = 0;
+        
+        if (applyCouponBtn) {
+            applyCouponBtn.addEventListener('click', function() {
+                const couponCode = couponInput.value.trim();
+                const subtotal = {{ subtotal }};
+                
+                if (!couponCode) {
+                    showCouponMessage('Please enter a coupon code', 'warning');
+                    return;
+                }
+                
+                // Show loading
+                applyCouponBtn.disabled = true;
+                applyCouponBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+                
+                // Validate coupon
+                fetch('/api/validate_coupon', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        coupon_code: couponCode,
+                        subtotal: subtotal
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    applyCouponBtn.disabled = false;
+                    applyCouponBtn.innerHTML = '<i class="fas fa-check"></i> Apply';
+                    
+                    if (data.valid) {
+                        showCouponMessage(data.message, 'success');
+                        appliedDiscount = data.discount;
+                        
+                        // Update the coupon input to show the validated code
+                        couponInput.value = data.code;
+                        
+                        // Disable the apply button and show success state
+                        applyCouponBtn.innerHTML = '<i class="fas fa-check text-success"></i> Applied';
+                        applyCouponBtn.disabled = true;
+                        
+                        // Redirect with coupon parameter to refresh page with discount
+                        setTimeout(() => {
+                            window.location.href = '/checkout?coupon=' + encodeURIComponent(data.code);
+                        }, 1500);
+                    } else {
+                        showCouponMessage(data.message, 'error');
+                        appliedDiscount = 0;
+                        
+                        // Reset apply button
+                        applyCouponBtn.innerHTML = '<i class="fas fa-check"></i> Apply';
+                        applyCouponBtn.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    applyCouponBtn.disabled = false;
+                    applyCouponBtn.innerHTML = '<i class="fas fa-check"></i> Apply';
+                    showCouponMessage('Error validating coupon. Please try again.', 'error');
+                });
+            });
+        }
+        
+        // Handle coupon item clicks
+        document.querySelectorAll('.coupon-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const code = this.getAttribute('data-code');
+                couponInput.value = code;
+                applyCouponBtn.click();
+            });
+        });
+        
+        function showCouponMessage(message, type) {
+            let className = 'alert-info';
+            if (type === 'success') className = 'alert-success';
+            if (type === 'error') className = 'alert-danger';
+            if (type === 'warning') className = 'alert-warning';
+            
+            couponMessage.innerHTML = `<div class="alert ${className} alert-dismissible fade show">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>`;
+        }
+        
+        function updateOrderTotal() {
+            // This function would update the order summary in real-time
+            // For now, we redirect to refresh the page with the coupon applied
+        }
+        
+        // Initial clock update and interval
+        updateClock();
+        setInterval(updateClock, 1000);
+    });
+</script>
+{% endblock %}

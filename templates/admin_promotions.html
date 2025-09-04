@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="display-6 mb-2">
+                        <i class="fas fa-tags text-primary"></i> Promotion Management
+                    </h1>
+                    <p class="text-muted">Create and manage discount coupons</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('add_promotion') }}" class="btn btn-success me-2">
+                        <i class="fas fa-plus"></i> Add New Promotion
+                    </a>
+                    <a href="{{ url_for('admin') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="status" class="form-label">Filter by Status</label>
+                            <select name="status" id="status" class="form-select">
+                                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Promotions</option>
+                                <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                                <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+                                <option value="expired" {% if status_filter == 'expired' %}selected{% endif %}>Expired</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-filter"></i> Filter
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Promotions List -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Promotions ({{ promotions|length }} total)</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if promotions %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Description</th>
+                                    <th>Discount</th>
+                                    <th>Min Order</th>
+                                    <th>Usage</th>
+                                    <th>Expires</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for promotion in promotions %}
+                                <tr>
+                                    <td>
+                                        <strong class="text-primary">{{ promotion.code }}</strong>
+                                    </td>
+                                    <td>
+                                        <small>{{ promotion.description or 'No description' }}</small>
+                                    </td>
+                                    <td>
+                                        {% if promotion.discount_type == 'percentage' %}
+                                        <span class="badge bg-info">{{ promotion.discount_value }}% off</span>
+                                        {% if promotion.max_discount %}
+                                        <br><small class="text-muted">Max ₹{{ promotion.max_discount }}</small>
+                                        {% endif %}
+                                        {% else %}
+                                        <span class="badge bg-success">₹{{ promotion.discount_value }} off</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if promotion.min_order_amount > 0 %}
+                                        <small>₹{{ promotion.min_order_amount }}</small>
+                                        {% else %}
+                                        <small class="text-muted">No minimum</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="text-center">
+                                            <small>{{ promotion.used_count }}</small>
+                                            {% if promotion.usage_limit %}
+                                            <small class="text-muted">/ {{ promotion.usage_limit }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if promotion.expires_at %}
+                                        <small>{{ promotion.expires_at.strftime('%d %b %Y') }}</small>
+                                        {% if promotion.is_expired %}
+                                        <br><span class="badge bg-danger">Expired</span>
+                                        {% endif %}
+                                        {% else %}
+                                        <small class="text-muted">No expiry</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if promotion.is_valid %}
+                                        <span class="badge bg-success">Valid</span>
+                                        {% elif not promotion.is_active %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                        {% elif promotion.is_expired %}
+                                        <span class="badge bg-danger">Expired</span>
+                                        {% elif promotion.is_usage_exceeded %}
+                                        <span class="badge bg-warning">Limit Reached</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Invalid</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('edit_promotion', promotion_id=promotion.id) }}" 
+                                               class="btn btn-outline-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <form action="{{ url_for('toggle_promotion_status', promotion_id=promotion.id) }}" 
+                                                  method="POST" class="d-inline">
+                                                <button type="submit" 
+                                                        class="btn btn-outline-{% if promotion.is_active %}warning{% else %}success{% endif %}"
+                                                        onclick="return confirm('Are you sure you want to {% if promotion.is_active %}deactivate{% else %}activate{% endif %} this promotion?')">
+                                                    <i class="fas fa-{% if promotion.is_active %}pause{% else %}play{% endif %}"></i>
+                                                </button>
+                                            </form>
+                                            <form action="{{ url_for('delete_promotion', promotion_id=promotion.id) }}" 
+                                                  method="POST" class="d-inline">
+                                                <button type="submit" 
+                                                        class="btn btn-outline-danger"
+                                                        onclick="return confirm('Are you sure you want to permanently delete this promotion? This action cannot be undone.')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center p-4">
+                        <i class="fas fa-tags fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No promotions found</p>
+                        <a href="{{ url_for('add_promotion') }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Create First Promotion
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
